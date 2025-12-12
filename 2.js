@@ -5,3 +5,18 @@
 // Barcha foydalanuvchilarni oling
 // Har bir foydalanuvchining ismini <li> elementi ichida ko'rsating
 // <ul> ro'yxat yarating
+
+let url = "https://jsonplaceholder.typicode.com/users"
+
+async function getName() {
+    try {
+        let res = await fetch(url)
+        let data = await res.json()
+        data.map(item => {
+            console.log(item.name);
+        })
+    } catch (err) {
+        console.log(err);
+    }
+}
+getName()

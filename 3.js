@@ -7,3 +7,19 @@
 // Natijani sahifada ko'rsating
 // Xato bo'lsa (masalan, noto'g'ri ID), xatolik xabarini ko'rsating
 
+let url = "https://jsonplaceholder.typicode.com/albums"
+
+async function getAlbums(id) {
+    try {
+        let res = await fetch(`${url}/${id}`)
+        if (res.status === 404) {
+            console.log("bunday album yo'q");
+            return
+        }
+        let data = await res.json()
+        console.log(data);
+    } catch (err) {
+        console.log(err);
+    }
+}
+getAlbums(101)
