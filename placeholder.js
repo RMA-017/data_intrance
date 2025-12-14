@@ -7,6 +7,8 @@ const server = http.createServer(async (req, resp) => {
     let last_name = root[1]
     let last_id = root[2]
 
+    resp.setHeader("Access-Control-Allow-Origin", 'http://127.0.0.1:5501')
+
     if (req.url === "/") {
         resp.writeHead(200, { "content-type": "text/plain" })
         resp.end(`server ishlamoqda
@@ -30,24 +32,34 @@ http://localhost:4000/photos`)
     ]
 
     if (menu_json.includes(req.url)) {
-        const file = await fs.readFile(`.${req.url}.json`, "utf8")
-        resp.writeHead(200, { "content-type": "application/json" })
-        resp.end(file)
+        if (req.method === "GET") {
+            const file = await fs.readFile(`.${req.url}.json`, "utf8")
+            resp.writeHead(200, { "content-type": "application/json" })
+            resp.end(file)
+        } else {
+            resp.writeHead(405)
+            resp.end("Method Not Allowed")
+        }
         return
     }
     else if (Number.isInteger(Number(last_id)) && Number(last_id) > 0) {
-        const file = await fs.readFile(`./${last_name}.json`, "utf8")
-        const parse_file = JSON.parse(file)
-        const info_id = parse_file[last_id - 1]
+        if (req.method === "GET") {
+            const file = await fs.readFile(`./${last_name}.json`, "utf8")
+            const parse_file = JSON.parse(file)
+            const info_id = parse_file[last_id - 1]
 
-        if (info_id === undefined) {
-            resp.writeHead(404)
-            resp.end("Not Found")
-            return
+            if (info_id === undefined) {
+                resp.writeHead(404)
+                resp.end("Not Found")
+                return
+            }
+
+            resp.writeHead(200, { "content-type": "application/json" })
+            resp.end(JSON.stringify(info_id))
+        } else {
+            resp.writeHead(405)
+            resp.end("Method not Allowed")
         }
-        
-        resp.writeHead(200, { "content-type": "application/json" })
-        resp.end(JSON.stringify(info_id))
         return
     }
     else {
