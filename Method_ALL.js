@@ -1,6 +1,5 @@
 import *as http from "http"
 import { promises as fs } from "fs"
-import { type } from "os"
 
 const PORT = 4001
 const all_root = [
@@ -10,76 +9,144 @@ const all_root = [
     "posts",
     "todos",
     "users",
-    "health"
 ]
 
-const server = http.createServer(async (new_req, new_resp) => {
+function middleware(oldReq, oldResp, next) {
+    let input = ""
+    let body = false
+    oldReq.on("data", data => {
+        body = true
+        input = input + data
+    })
 
-    let name_root = new_req.url.split("/")[1].toLowerCase()
-    let user_id = new_req.url.split("/")[2]
+    oldReq.on("end", () => {
+        if (body) {
+            try {
+                let parse_input = JSON.parse(input)
+                oldReq.body = parse_input
+                next(oldReq, oldResp)
+            } catch (error) {
+                console.error(error);
+                oldResp.end()
+            }
+        } else {
+            next(oldReq, oldResp)
+        }
+    })
+}
 
-    if (new_req.url === "/") {
-        new_resp.writeHead(200, { "content-type": "text/plain" })
-        new_resp.end(`server ishlamoqda
-url root:
-http://localhost:4000/albums
-http://localhost:4000/comments
-http://localhost:4000/posts
-http://localhost:4000/todos
-http://localhost:4000/users
-http://localhost:4000/photos`)
-        return
-    }
+const server = http.createServer((oldReq, oldResp) => {
+    middleware(oldReq, oldResp, async (req, resp) => {
 
-    else if (user_id && all_root.includes(name_root)) {
+        let root_name = req.url.split("/")[1].toLowerCase()
+        let root_name_id = req.url.split("/")[2]
 
-        let search_root = JSON.parse(await fs.readFile(`./${name_root}.json`, "utf8"))
-        let search_root_id = search_root.map(item => {
-            return item.id
-        })
-
-        if (search_root_id.includes(Number(user_id))) {
-            let file_id = search_root.filter(item => item.id === Number(user_id))
-            new_resp.writeHead(200, { "content-type": "application/json" })
-            new_resp.end(JSON.stringify(file_id))
-            return
+        if (req.url === "/") {
+            resp.writeHead(200, { "Content-Type": "application/json" })
+            resp.end(JSON.stringify({ massage: `Server ishlamoqda` }))
         }
 
-        else {
-            new_resp.writeHead(404)
-            new_resp.end("Not Found")
-        }
-        return
-    }
+        else if (all_root.includes(root_name) && root_name_id === undefined) {
 
-    else if (name_root && user_id === undefined) {
-        if (all_root.includes(name_root)) {
-            if (new_req.method === "GET") {
-                const file = await fs.readFile(`./${name_root}.json`, "utf-8")
-                new_resp.writeHead(200, { "content-type": "application/json" })
-                new_resp.end(file)
+            if (req.method === "GET") {
+                let file = await fs.readFile(`./${root_name}.json`, "utf-8")
+                resp.writeHead(200, { "content-type": "application/json" })
+                resp.end(file)
                 return
             }
 
-            else if (new_req.method === "POST") { }
+            else if (req.method === "POST") {
+                let { id, name, username, email } = req.body
+                const search_id = await fs.readFile(`./${root_name}.json`, "utf-8")
+                const parse_id = JSON.parse(search_id)
+                const find_id = parse_id.find(item => item.id === Number(id))
 
-            else if (new_req.method === "PATCH") { }
+                if (find_id) {
+                    resp.writeHead(400, { "Content-Type": "application/json" })
+                    resp.end(JSON.stringify({ error: `${id} already exists` }))
+                    return
+                }
+                const new_user = {
+                    id: Number(id),
+                    name,
+                    username,
+                    email
+                }
+                parse_id.push(new_user)
+                await fs.writeFile(`./${root_name}.json`, JSON.stringify(parse_id))
+                resp.writeHead(201, { "Content-Type": "application/json" })
+                resp.end(JSON.stringify({ name: `${new_user.name} qo'shildi` }))
+                return
+            }
 
-            else if (new_req.method === "DELETE") { }
+            else if (req.method === "PATCH") {
+                let { id, newName } = req.body
+                const search_id = await fs.readFile(`./${root_name}.json`, "utf-8")
+                const parse_id = JSON.parse(search_id)
+                const find_id = parse_id.find(item => item.id === Number(id))
 
-        } else {
-            new_resp.writeHead(404)
-            new_resp.end("Not Found")
+                if (!find_id) {
+                    resp.writeHead(400, { "Content-Type": "application/json" })
+                    resp.end(JSON.stringify({ error: `${id} is not exists` }))
+                    return
+                }
+
+                find_id.name = newName
+                await fs.writeFile(`./${root_name}.json`, JSON.stringify(parse_id))
+                resp.writeHead(200, { "Content-Type": "application/json" })
+                resp.end(JSON.stringify({ name: `${find_id.name}ga o'zgardi` }))
+                return
+            }
+
+            else if (req.method === "DELETE") {
+                let { id } = req.body
+                const search_id = await fs.readFile(`./${root_name}.json`, "utf-8")
+                const parse_id = JSON.parse(search_id)
+                const find_id = parse_id.find(item => item.id === Number(id))
+
+                if (!find_id) {
+                    resp.writeHead(400, { "Content-Type": "application/json" })
+                    resp.end(JSON.stringify({ error: `${id} is not exists` }))
+                    return
+                }
+
+                let new_data = parse_id.filter(item => item.id !== Number(id))
+                await fs.writeFile(`./${root_name}.json`, JSON.stringify(new_data))
+                resp.writeHead(200, { "Content-Type": "application/json" })
+                resp.end(JSON.stringify({ id: `${id} o'chirildi` }))
+                return
+            }
+
+            else {
+                resp.writeHead(405)
+                resp.end("Method Not Allowed")
+            }
         }
-        return
-    }
 
-    else {
-        new_resp.writeHead(404)
-        new_resp.end("Not Found")
-    }
+        else if (all_root.includes(root_name) && root_name_id) {
+            if (req.method === "GET") {
+                let file = await fs.readFile(`./${root_name}.json`, "utf-8")
+                let parse_file = JSON.parse(file)
+                let result = parse_file.find(item => item.id === Number(root_name_id))
+                if (result === undefined) {
+                    resp.writeHead(404, { "Content-Type": "application/json" })
+                    resp.end(JSON.stringify({ error: "Not Found, Not id Number" }))
+                    return
+                }
+                resp.writeHead(200, { "content-type": "application/json" })
+                resp.end(JSON.stringify(result))
+                return
+            }
+        }
 
+        else {
+            resp.writeHead(404)
+            resp.end("Not Found")
+        }
+
+    })
 })
+
 server.listen(PORT, "127.0.0.1", () => {
     console.log(`server ${PORT} portda ishlamoqda`);
 })
