@@ -150,7 +150,3 @@ const server = http.createServer((oldReq, oldResp) => {
 server.listen(PORT, "127.0.0.1", () => {
     console.log(`server ${PORT} portda ishlamoqda`);
 })
-
-
-
-asdadadsasd
