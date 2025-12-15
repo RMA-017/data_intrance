@@ -83,3 +83,7 @@ http://localhost:4000/photos`)
 server.listen(PORT, "127.0.0.1", () => {
     console.log(`server ${PORT} portda ishlamoqda`);
 })
+
+
+
+asdadadsasd
