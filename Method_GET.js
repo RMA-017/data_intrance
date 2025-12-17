@@ -7,7 +7,7 @@ const server = http.createServer(async (req, resp) => {
     let last_name = root[1]
     let last_id = root[2]
 
-    resp.setHeader("Access-Control-Allow-Origin", 'http://127.0.0.1:5501')
+    resp.setHeader("Access-Control-Allow-Origin", '*')
 
     if (req.url === "/") {
         resp.writeHead(200, { "content-type": "text/plain" })

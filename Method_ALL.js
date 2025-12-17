@@ -38,6 +38,8 @@ function middleware(oldReq, oldResp, next) {
 const server = http.createServer((oldReq, oldResp) => {
     middleware(oldReq, oldResp, async (req, resp) => {
 
+        resp.setHeader("Access-Control-Allow-Origin", '*')
+
         let root_name = req.url.split("/")[1].toLowerCase()
         let root_name_id = req.url.split("/")[2]
 
